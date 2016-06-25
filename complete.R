@@ -1,46 +1,32 @@
 complete <- function(directory, id = 1:332) {
+	#make a blank vector
+	datmatr <- matrix(ncol=2)
+	colnames(datmatr) <- c("id", "nobs")
 
-    ## 'directory' is a character vector of length 1 indicating
-    ## the location of the CSV files
+	#use a for loop to load the requested data into a dataframe
+	for(file in id) {
+		#save the raw number
+		obsnum <- file
 
-    returnframe <- data.frame(id = numeric(), nobs = numeric())
+		#all files need to be in three digit format
+		file <- make3digit(file)
 
-    for(singleID in id) {
+		#finish making the filename
+		file <- paste(directory, "/", file, ".csv", sep="")
 
-        ## make the singleID a three-character string
-        if (singleID < 10) {
-            singleIDstr <- paste("00", toString(singleID), sep="")
-        }
-        else if (singleID < 100) {
-            singleIDstr <- paste("0", toString(singleID), sep="")
-        }
-        else {
-            singleIDstr <- toString(singleID)
-        }
+		#read in that file
+		adf <- read.csv(file)
 
-        ## make the file path string
-        fileloc <- paste(directory, "/", singleIDstr, ".csv", sep="")
+		#count obs
+		nobs <- sum(complete.cases(adf))
+#		print(badNA)
 
-        ## read in to data frame
-        fulldataframe <- read.csv(fileloc)
+#		print(adf[!badNA, pollutant])
 
-        cleanframe <- na.omit(fulldataframe)
+		#load that file's information into the vector
+		datmatr <- rbind(datmatr, matrix(c(obsnum, nobs), nrow=1, ncol=2))
+	}
 
-        numrows <- nrow(cleanframe)
-        
-        returnframe <- rbind(returnframe, data.frame(id = singleID, nobs = numrows))
-    }
-
-    ## 'id' is an integer vector indicating the monitor ID numbers
-    ## to be used
-    
-    ## Return a data frame of the form:
-    ## id nobs
-    ## 1  117
-    ## 2  1041
-    ## ...
-    ## where 'id' is the monitor ID number and 'nobs' is the
-    ## number of complete cases
-
-    returnframe
+	datmatr <- datmatr[-1,]
+	datmatr
 }

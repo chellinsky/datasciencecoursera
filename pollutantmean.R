@@ -1,43 +1,35 @@
 pollutantmean <- function(directory, pollutant, id = 1:332) {
+	#make a blank vector
+	datvect <- vector()
 
-	## load all ids in a dataframe
+	#use a for loop to load the requested data into a dataframe
+	for(file in id) {
+		#all files need to be in three digit format
+		file <- make3digit(file)
 
-	firsttime <- TRUE
+		#finish making the filename
+		file <- paste(directory, "/", file, ".csv", sep="")
 
-    for(singleID in id) {
+		#read in that file
+		adf <- read.csv(file)
 
-    	## make the singleID a three-character string
-        if (singleID < 10) {
-            singleIDstr <- paste("00", toString(singleID), sep="")
-        }
-        else if (singleID < 100) {
-            singleIDstr <- paste("0", toString(singleID), sep="")
-        }
-        else {
-            singleIDstr <- toString(singleID)
-        }
+		#remove NAs
+		badNA <- is.na(adf[, pollutant])
+#		print(badNA)
 
-        fileloc <- paste(directory, "/", singleIDstr, ".csv", sep="")
+#		print(adf[!badNA, pollutant])
 
-        if(firsttime) {
-	        fulldataframe <- read.csv(fileloc)
-	        firsttime <- FALSE
-        }
-        else {
-	        dataframe <- read.csv(fileloc)
-	        fulldataframe <- rbind(fulldataframe, dataframe)
-	    }
-    }
+		#load that file's information into the vector
+		datvect <- c(datvect, adf[!badNA, pollutant])
+	}
 
-    mean(fulldataframe[,pollutant],na.rm=TRUE)
+	mean(datvect)
+}
 
-        ## 'pollutant' is a character vector of length 1 indicating
-        ## the name of the pollutant for which we will calculate the
-        ## mean; either "sulfate" or "nitrate".
-
-        ## 'id' is an integer vector indicating the monitor ID numbers
-        ## to be used
-
-        ## Return the mean of the pollutant across all monitors list
-        ## in the 'id' vector (ignoring NA values)
+make3digit <- function(number) {
+	number <- as.character(number)
+	while(nchar(number) < 3) {
+		number <- paste("0", number, sep="")
+	}
+	return(number)
 }
