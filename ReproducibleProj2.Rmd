@@ -21,15 +21,134 @@ This document has two main sections.  First, a data processing section describes
 The first step is to download, extract, and read the data file.
 
 ```{r download, cache = TRUE}
-summary(cars)
+download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2", "stormdata.csv.bz2")
+
+stormdata <- read.csv("stormdata.csv.bz2")
 ```
 
-## Including Plots
+Let's look at the dimensions and structure of the data to get an understanding of what's going on.
 
-You can also embed plots, for example:
+```{r explore}
+dim(stormdata)
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+str(stormdata)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Based on this, it looks like we will use ```EVTYPE``` for the type of event in each question.  For the first question, we want to look at ```FATALITIES``` and ```INJURIES```.  For the second question, we want to look at ```PROPDMG``` and ```CROPDMG```.
+
+For property and crop damage to work correctly in the analysis of the second question, we need to multiply ```PROPDMG``` and ```CROPDMG``` by an appropriate amount based on the related ```EXP``` field.  We will the only valide ```EXP``` field values are "B", "b", "M", "m", "K", and "k" based off the [Storm Data Documentation](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf) (see page 12).
+
+To do this, we'll use the ```dplyr``` package to mutate a couple additional columns on to the data frame.  Before we can do that, let's make a couple vecotrs to align with ```CROPDMGEXP``` and ```PROPDMGEXP`` converting the letters to numbers.  Then, we can mutate the data frame.
+
+We'll use a function for the tranformation from letters to number ```EXP``` variables:
+
+```{r function}
+
+convexp <- function(expvect) {
+  i <- 1
+  goodexps <- vector(mode = "numeric", length = length(expvect))
+  for (value in expvect) {
+    if (value == "K" || value == "k") { value <- 1000 }
+    else if (value == "M" || value == "m") { value <- 1000000 }
+    else if (value == "B" || value == "b") { value <- 1000000000 }
+    else value <- 0
+    
+    goodexps[i] <- value
+    i <- i + 1
+  }
+  
+  return(goodexps)
+  
+}
+
+```
+
+Here is the transformation and mutation.
+
+```{r transform, cache = TRUE}
+
+crpexp <- stormdata$CROPDMGEXP
+
+prpexp <- stormdata$PROPDMGEXP
+
+crpexp <- convexp(crpexp)
+
+prpexp <- convexp(prpexp)
+
+library(dplyr)
+
+stormdataready <- mutate(stormdata, TOTPRPDMG = prpexp * PROPDMG, TOTCRPDMG = crpexp * CROPDMG, TOTDMG = prpexp * PROPDMG + crpexp * CROPDMG)
+
+```
+
+We need to do something similar for fatalities and injuries.  For the purposes of this analysis, we will assume fatalities and injuries carry equal weight.
+
+```{r transform2, cache = TRUE}
+
+stormdataready <- mutate(stormdataready, TOTHLT = FATALITIES + INJURIES)
+
+```
+
+One more step before looking at results.  We need to aggregate the data down to event type.
+
+```{r aggregate, cache = TRUE}
+
+cleanstorm <- aggregate(cbind(TOTHLT, TOTDMG) ~ EVTYPE, stormdataready, FUN = sum)
+
+```
+
+## Results
+
+Now, it's time to address each question.
+
+### Event Type and Population Health
+
+1. Across the United States, which types of events (as indicated in the ```EVTYPE``` variable) are most harmful with respect to population health?
+
+Because there are 985 event types, let's find the 15 event types with the most fatalities and injuries.
+
+```{r health}
+
+topevs <- cleanstorm[head(order(cleanstorm$TOTHLT, decreasing = TRUE), n = 15L), c("EVTYPE", "TOTHLT")]
+topevs
+
+```
+
+Let's plot the top 5 event types using ggplot2.
+
+```{r healthplot}
+
+library(ggplot2)
+
+ggplot(topevs[1:5, ], aes(EVTYPE, TOTHLT)) + geom_bar(stat = "identity") + ylab("Fatalities and Injuries") + xlab("Event Type") + ggtitle("Health Effects of Top 5 Weather Events")
+
+```
+
+### Event Type and Economic Impact
+
+2. Across the United States, which types of events have the greatest economic consequences?
+
+Similar to the first question, let's concentrate on the 15 event types with the highest property and crop costs.
+
+```{r cost}
+
+topcostevs <- cleanstorm[head(order(cleanstorm$TOTDMG, decreasing = TRUE), n = 15L), c("EVTYPE", "TOTDMG")]
+topcostevs
+
+```
+
+Let's plot the top 5 event types.
+
+```{r costplot}
+
+ggplot(topcostevs[1:5, ], aes(EVTYPE, TOTDMG)) + geom_bar(stat = "identity") + ylab("Property and Crop Damages (in $)") + xlab("Event Type") + ggtitle("Economic Effects of Top 5 Weather Events")
+
+```
+
+### Caveats
+
+A couple parting caveats:
+
+1. The data are messy and the data processing step only partially cleaned the data.  It did not address the fact that many event types are repeated with different spellings (e.g. "Wintry mix" and "WINTERY MIX").  This reduces the total count for some events in both questions.
+2. Data processing did not account for entries in the ```EXP``` field that did not match the guide.  For example, "H" and "h" probably means "hundreds", but this is not called out in the guide.  Therefore those values were ignored (assumed to be zero).
+
