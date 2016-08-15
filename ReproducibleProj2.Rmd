@@ -1,0 +1,35 @@
+---
+title: "Weather Events and their Consequences"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Synopsis
+
+This analysis uses NOAA Storm Data to answer two basic questions about severe weather events and their consequences.  Specifically, this analysis answers these two questions:
+
+1. Across the United States, which types of events (as indicated in the ```EVTYPE``` variable) are most harmful with respect to population health?
+2. Across the United States, which types of events have the greatest economic consequences?
+
+This document has two main sections.  First, a data processing section describes how to obtain and process the data before analysis.  A results section follows that analyzes the data to answer the two questions.
+
+## Data Processing
+
+The first step is to download, extract, and read the data file.
+
+```{r download, cache = TRUE}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
