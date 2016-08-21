@@ -1,0 +1,99 @@
+---
+title: 'Statistical Inference Project Part 2: Inferential Data Analysis'
+author: "Andrew Chellinsky"
+date: "August 21, 2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+In the second part of this course project, we have four tasks:
+
+1. Load the ToothGrowth data and perform some basic exploratory data analyses
+2. Provide a basic summary of the data.
+3. Use confidence intervals and/or hypothesis tests to compare tooth growth by supp and dose. (Only use the techniques from class, even if there's other approaches worth considering)
+4. State your conclusions and the assumptions needed for your conclusions.
+
+Each of these tasks is in its own section throughout this document.
+
+## Load and Explore Data
+
+First, load the data frame:
+
+```{r loaddata}
+data("ToothGrowth")
+```
+
+Now, perform some simple exploration of the data frame:
+
+```{r explore}
+dim(ToothGrowth)
+head(ToothGrowth)
+str(ToothGrowth)
+```
+
+Looks like dose may be better as a factor.  Let's clean that up:
+
+```{r clean}
+tg2 <- ToothGrowth
+tg2$dose <- as.factor(tg2$dose)
+```
+
+Let's make a couple simple plots of dose and supp compared to len.
+
+```{r plots}
+par(mfrow = c(1, 2), pin = c(3, 2))
+
+plot(tg2$supp, tg2$len, type = "s", main = "Tooth Growth by Supplement", xlab = "Supplement", ylab = "Length")
+
+plot(tg2$dose, tg2$len, type = "s", main = "Tooth Growth by Dose", xlab = "Dose", ylab = "Length")
+```
+
+## Data Summary
+
+To summarize the data briefly:
+
+```{r summary}
+summary(tg2)
+```
+
+In other words, the data frame consists of 60 measures.  They are split equally between the supp and dose variables--30 for each supp and 20 for each dose.  Searching R help reveals that supp refers to supplements, either orange juice (OJ) or ascorbic acid (VC).  Dose refers to the dose of the supplement in milligrams per day.
+
+## Comparison of Tooth Growth by Supp and Dose
+
+To compare tooth growth by supplement and dose, let's make a couple null hypotheses.  First for supplements, the null hypothesis is that the mean tooth growth is the same for both OJ and VC supplement types.  Second for dose, the null hypothesis is that the mean tooth growth is the same for all three doses:  0.5, 1, and 2.
+
+Using a t-test on the first null hypothesis (for supplements) yields a result that shows the means are not significantly different at the 95% confidence interval.  However, it is significant at the 94% confidence interval.
+
+```{r suppttest}
+OJ <- tg2[tg2$supp == "OJ", ]
+VC <- tg2[tg2$supp == "VC", ]
+t.test(OJ$len, VC$len)
+```
+
+Similarly, using a t-test on the second null hypothesis (for dose) yields a result that shows each mean is significantly different.  In other words, all dosages gave significantly different results at a 95% confidence interval.
+
+```{r dosetest}
+D5 <- tg2[tg2$dose == 0.5, ]
+D1 <- tg2[tg2$dose == 1, ]
+D2 <- tg2[tg2$dose == 2, ]
+t.test(D5$len, D1$len)$conf.int
+t.test(D5$len, D2$len)$conf.int
+t.test(D1$len, D2$len)$conf.int
+```
+
+## Conclusions and Assumptions
+
+### Conclusions
+
+To conclude, each level of dosage has a significant effect on tooth growth length.  The type of supplement, on the other hand, does not have a significant effect on tooth growth length.
+
+### Assumptions
+
+This analysis assumes normally distributed data and iid measurements.  These assumptions appear to be safe based on the data, but without access to more information on the sampling procedures, it is left as an assumption.
+
+Additionally, this analysis assumes the effect would be between doses or supplements, not an interaction of the two.  Therefore, this analysis did not look at the combined effect of supplements and doses for significance.
